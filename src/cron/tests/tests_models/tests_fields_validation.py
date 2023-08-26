@@ -47,7 +47,7 @@ class JobScheduleValidateModelFieldsTestCase(TestCase):
         self.assertEquals(self.job_schedule.minute, field_value)
 
     def test_validate_minute_with_default(self):
-        default_value = "*"
+        default_value = "0"
 
         self.job_schedule = JobSchedule.objects.create(
             job=self.job,
@@ -106,7 +106,7 @@ class JobScheduleValidateModelFieldsTestCase(TestCase):
             description="Test description",
         )
 
-        self.assertEquals(self.job_schedule.minute, default_value)
+        self.assertEquals(self.job_schedule.hour, default_value)
 
     def test_validate_hour_with_numbers_out_of_range(self):
         field_value = "1,30,61,62"
@@ -158,7 +158,7 @@ class JobScheduleValidateModelFieldsTestCase(TestCase):
             description="Test description",
         )
 
-        self.assertEquals(self.job_schedule.minute, default_value)
+        self.assertEquals(self.job_schedule.day_of_month, default_value)
 
     def test_validate_day_of_month_with_numbers_out_of_range(self):
         field_value = "1,10,32"
@@ -210,7 +210,7 @@ class JobScheduleValidateModelFieldsTestCase(TestCase):
             description="Test description",
         )
 
-        self.assertEquals(self.job_schedule.minute, default_value)
+        self.assertEquals(self.job_schedule.month, default_value)
 
     def test_validate_month_with_numbers_out_of_range(self):
         field_value = "10,11,12,13"
@@ -262,7 +262,7 @@ class JobScheduleValidateModelFieldsTestCase(TestCase):
             description="Test description",
         )
 
-        self.assertEquals(self.job_schedule.minute, default_value)
+        self.assertEquals(self.job_schedule.day_of_week, default_value)
 
     def test_validate_day_of_week_with_numbers_out_of_range(self):
         field_value = "0,5,6,7,8"
@@ -314,7 +314,7 @@ class JobScheduleValidateModelFieldsTestCase(TestCase):
             description="Test description",
         )
 
-        self.assertEquals(self.job_schedule.minute, default_value)
+        self.assertEquals(self.job_schedule.year, default_value)
 
     def test_validate_year_with_numbers_out_of_range(self):
         field_value = "2023, 10000"
