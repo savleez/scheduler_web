@@ -8,23 +8,30 @@ class Job(models.Model):
     """Model that describes a Job or RPA"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=255, verbose_name="Nombre")
+    name = models.CharField(max_length=255, verbose_name="Nombre", unique=True)
     owner = models.CharField(max_length=255, verbose_name="Responsable")
-    script = models.CharField(max_length=200, verbose_name="Fichero")
+    script = models.CharField(max_length=200, verbose_name="Fichero", unique=True)
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name = "Job"
+        verbose_name_plural = "Jobs"
+        ordering = ["name"]
 
 
 class JobSchedule(models.Model):
     """Model taht describes the schedules on which the job will be executed"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    description = models.CharField(max_length=255, verbose_name="Nombre")
+    description = models.CharField(
+        max_length=255, verbose_name="Descripción", blank=True, null=True
+    )
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="schedules")
     minute = models.CharField(
         max_length=255,
-        default="*",
+        default="0",
         verbose_name="Minutos",
         help_text="Minutos donde se iniciará la ejecución. Deben ser números entre el 0 y el 59 separados por comas.",
     )
@@ -60,7 +67,16 @@ class JobSchedule(models.Model):
     )
 
     def __str__(self):
-        return f"{self.job.name} - {self.description}"
+        return (
+            f"{self.job.name} | {self.description}"
+            if self.description
+            else self.job.name
+        )
+
+    class Meta:
+        verbose_name = "Horario de Job"
+        verbose_name_plural = "Horarios de Jobs"
+        ordering = ["job", "description"]
 
     def validate_allowed_chars(self, field_value, field_name) -> bool:
         """Validates whether the provided field value contains only allowed characters.
