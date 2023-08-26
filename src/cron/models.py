@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.forms import ValidationError
 
@@ -5,7 +7,7 @@ from django.forms import ValidationError
 class Job(models.Model):
     """Model that describes a Job or RPA"""
 
-    id = models.UUIDField()
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name="Nombre")
     owner = models.CharField(max_length=255, verbose_name="Responsable")
     script = models.CharField(max_length=200, verbose_name="Fichero")
@@ -17,7 +19,7 @@ class Job(models.Model):
 class JobSchedule(models.Model):
     """Model taht describes the schedules on which the job will be executed"""
 
-    id = models.UUIDField()
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     description = models.CharField(max_length=255, verbose_name="Nombre")
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="schedules")
     minute = models.CharField(
@@ -58,14 +60,45 @@ class JobSchedule(models.Model):
     )
 
     def __str__(self):
-        return f"{self.name} - {self.job.name}"
+        return f"{self.job.name} - {self.description}"
 
-    def validate_allowed_chars(self, field_value, field_name):
+    def validate_allowed_chars(self, field_value, field_name) -> bool:
+        """Validates whether the provided field value contains only allowed characters.
+
+        Args:
+            field_value (str): The value to be validated.
+            field_name (str): The name of the field being validated.
+
+        Raises:
+            ValidationError: If the field value contains invalid characters.
+
+        Returns:
+            bool: True if validation passes.
+        """
+
         allowed_chars = set("*,0123456789")
         if not all(char in allowed_chars for char in field_value):
             raise ValidationError(f"Invalid characters in {field_name} field")
 
-    def validate_all_char(self, field_value, field_name):
+        return True
+
+    def validate_asterisk_use(self, field_value, field_name) -> bool:
+        """Validates the usage of asterisk (*) in the field value.
+
+        The asterisk means 'all' the possible values of the field. If there is an asterisk on the
+        field, there must not be any number.
+
+        Args:
+            field_value (str): The value to be validated.
+            field_name (str): The name of the field being validated.
+
+        Raises:
+            ValidationError: If asterisk (*) is used incorrectly in the field value.
+
+        Returns:
+            bool: True if validation passes.
+        """
+
         if "*" in field_value:
             if field_value.count("*") > 1:
                 raise ValidationError(f"Only one * is allowed in {field_name}")
@@ -79,41 +112,132 @@ class JobSchedule(models.Model):
 
         return False
 
-    def validate_values_in_range(self, value_range, field_values, field_name):
+    def validate_values_in_range(self, value_range, field_value, field_name) -> bool:
+        """Validates whether the values in the field value are within the specified range.
+
+        Args:
+            value_range (list[int]): A list containing the minimum and maximum allowed values.
+            field_value (str): The value to be validated.
+            field_name (str): The name of the field being validated.
+
+        Raises:
+            ValidationError: If values are outside the allowed range.
+
+        Returns:
+            bool: True if validation passes.
+        """
+
         min_value, max_value = value_range
+        field_values = field_value.split(",")
+
+        if "*" in field_values:
+            raise ValidationError(f"Cannot use * with other numbers in {field_name}")
 
         for value in field_values:
-            if value != "*" and not (min_value <= int(value) <= max_value):
+            if value == "":
+                pass
+            elif not (min_value <= int(value) <= max_value):
                 raise ValidationError(
                     f"{field_name} value must be between {min_value} and {max_value}."
                 )
 
-    def validate_minute(self):
-        self.validate_allowed_chars(self.minute)
+        return True
 
-        minutes = self.minute.split(",")
+    def validate_minute(self):
+        """Validates the 'minute' field based on allowed characters, asterisk usage, and value range."""
+
+        value_range = [0, 59]
+        field_value = self.minute
+        field_name = "minute"
+
+        self.validate_allowed_chars(field_value, field_name)
+
+        if not self.validate_asterisk_use(field_value, field_name):
+            self.validate_values_in_range(
+                value_range=value_range,
+                field_value=field_value,
+                field_name=field_name,
+            )
 
     def validate_hour(self):
-        self.validate_allowed_chars(self.hour)
+        """Validates the 'hour' field based on allowed characters, asterisk usage, and value range."""
+
+        value_range = [0, 23]
+        field_value = self.hour
+        field_name = "hour"
+
+        self.validate_allowed_chars(field_value, field_name)
+
+        if not self.validate_asterisk_use(field_value, field_name):
+            self.validate_values_in_range(
+                value_range=value_range,
+                field_value=field_value,
+                field_name=field_name,
+            )
 
     def validate_day_of_month(self):
-        self.validate_allowed_chars(self.day_of_month)
+        """Validates the 'day_of_month' field based on allowed characters, asterisk usage, and value range."""
+
+        value_range = [1, 31]
+        field_value = self.day_of_month
+        field_name = "day_of_month"
+
+        self.validate_allowed_chars(field_value, field_name)
+
+        if not self.validate_asterisk_use(field_value, field_name):
+            self.validate_values_in_range(
+                value_range=value_range,
+                field_value=field_value,
+                field_name=field_name,
+            )
 
     def validate_month(self):
-        self.validate_allowed_chars(self.month)
+        """Validates the 'month' field based on allowed characters, asterisk usage, and value range."""
+
+        value_range = [1, 12]
+        field_value = self.month
+        field_name = "month"
+
+        self.validate_allowed_chars(field_value, field_name)
+
+        if not self.validate_asterisk_use(field_value, field_name):
+            self.validate_values_in_range(
+                value_range=value_range,
+                field_value=field_value,
+                field_name=field_name,
+            )
 
     def validate_day_of_week(self):
-        self.validate_allowed_chars(self.day_of_week)
+        """Validates the 'day_of_week' field based on allowed characters, asterisk usage, and value range."""
 
-        if not self.validate_all_char(self.day_of_week):
+        value_range = [1, 7]
+        field_value = self.day_of_week
+        field_name = "day_of_week"
+
+        self.validate_allowed_chars(field_value, field_name)
+
+        if not self.validate_asterisk_use(field_value, field_name):
             self.validate_values_in_range(
-                value_range=[1, 7],
-                field_values=self.day_of_week.split(","),
-                field_name="day_of_week",
+                value_range=value_range,
+                field_value=field_value,
+                field_name=field_name,
             )
 
     def validate_year(self):
-        self.validate_allowed_chars(self.year)
+        """Validates the 'year' field based on allowed characters, asterisk usage, and value range."""
+
+        value_range = [0, 9999]
+        field_value = self.year
+        field_name = "year"
+
+        self.validate_allowed_chars(field_value, field_name)
+
+        if not self.validate_asterisk_use(field_value, field_name):
+            self.validate_values_in_range(
+                value_range=value_range,
+                field_value=field_value,
+                field_name=field_name,
+            )
 
     def clean(self):
         self.validate_minute()
