@@ -31,7 +31,7 @@ local_settings.py
 
 # Environments
 .env
-.env.*
+
 
 # Visual Studio Code settings
 .vscode
